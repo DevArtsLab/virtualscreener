@@ -19,9 +19,6 @@ torchvision==0.19.1
 # Protein structure
 biopython==1.84
 
-# AutoDock Vina (optional — falls back to heuristic if unavailable)
-vina==1.2.5
-
 # Ligand preparation for Vina (optional)
 meeko==0.5.0
 

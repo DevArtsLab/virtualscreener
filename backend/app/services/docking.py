@@ -1,5 +1,5 @@
 """
-Tier 3: AutoDock Vina docking via the `vina` Python bindings.
+Tier 3: AutoDock Vina docking via the system `vina` binary (installed via apt).
 Docks top-K molecules into the protein pocket extracted by protein_proc.py,
 returns docking scores and best pose PDB strings for 3D visualization.
 """
@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -15,12 +16,24 @@ from app.schemas.models import PocketInfo
 
 logger = logging.getLogger(__name__)
 
-_vina_available = False
-try:
-    from vina import Vina
-    _vina_available = True
-except ImportError:
-    logger.warning("AutoDock Vina Python bindings not available – docking disabled")
+
+def _vina_binary() -> Optional[str]:
+    """Return path to vina binary if available, else None."""
+    for candidate in ["vina", "/usr/bin/vina", "/usr/local/bin/vina"]:
+        try:
+            r = subprocess.run([candidate, "--version"], capture_output=True, timeout=5)
+            if r.returncode == 0:
+                return candidate
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+    return None
+
+
+_VINA_BIN = _vina_binary()
+if _VINA_BIN:
+    logger.info("AutoDock Vina binary found: %s", _VINA_BIN)
+else:
+    logger.warning("AutoDock Vina binary not found – docking will use heuristic fallback")
 
 
 def _smiles_to_pdbqt(smiles: str, name: str) -> Optional[str]:
@@ -96,8 +109,8 @@ def dock_molecules(
     Returns list of {mol_id, docking_score, pose_pdb}.
     Falls back to a physics-inspired heuristic score if Vina is unavailable.
     """
-    if not _vina_available:
-        logger.info("Vina unavailable – using heuristic docking scores")
+    if not _VINA_BIN:
+        logger.info("Vina binary unavailable – using heuristic docking scores")
         return _heuristic_docking(molecules, pocket)
 
     results = []
@@ -131,18 +144,46 @@ def dock_molecules(
                 continue
 
             try:
-                v = Vina(sf_name="vina", verbosity=0)
-                v.set_receptor(protein_pdbqt_path)
-                v.set_ligand_from_string(ligand_pdbqt)
-                v.compute_vina_maps(
-                    center=[pocket.center_x, pocket.center_y, pocket.center_z],
-                    box_size=[pocket.size_x, pocket.size_y, pocket.size_z],
-                )
-                v.dock(exhaustiveness=exhaustiveness, n_poses=n_poses)
-                energies = v.energies()
-                best_score = float(energies[0][0]) if energies else None
-                best_pose_pdbqt = v.poses(n_poses=1)
-                pose_pdb = _pdbqt_to_pdb(best_pose_pdbqt) if best_pose_pdbqt else None
+                lig_pdbqt_path = os.path.join(tmpdir, f"{mol_id}_lig.pdbqt")
+                out_pdbqt_path = os.path.join(tmpdir, f"{mol_id}_out.pdbqt")
+                with open(lig_pdbqt_path, "w") as f:
+                    f.write(ligand_pdbqt)
+
+                cmd = [
+                    _VINA_BIN,
+                    "--receptor", protein_pdbqt_path,
+                    "--ligand", lig_pdbqt_path,
+                    "--out", out_pdbqt_path,
+                    "--center_x", str(pocket.center_x),
+                    "--center_y", str(pocket.center_y),
+                    "--center_z", str(pocket.center_z),
+                    "--size_x", str(pocket.size_x),
+                    "--size_y", str(pocket.size_y),
+                    "--size_z", str(pocket.size_z),
+                    "--exhaustiveness", str(exhaustiveness),
+                    "--num_modes", str(n_poses),
+                    "--cpu", "1",
+                ]
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+                best_score = None
+                pose_pdb = None
+                if proc.returncode == 0 and os.path.exists(out_pdbqt_path):
+                    with open(out_pdbqt_path) as f:
+                        out_pdbqt = f.read()
+                    pose_pdb = _pdbqt_to_pdb(out_pdbqt)
+                    for line in proc.stdout.splitlines():
+                        if line.strip().startswith("1 "):
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                try:
+                                    best_score = float(parts[1])
+                                except ValueError:
+                                    pass
+                            break
+                else:
+                    logger.debug("Vina stderr for %s: %s", mol_id, proc.stderr[:300])
+
                 results.append(
                     {
                         "mol_id": mol_id,
