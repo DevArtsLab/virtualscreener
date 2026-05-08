@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 from app.core.config import settings
 from app.routers import jobs, molecules, screening
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,6 +24,7 @@ async def lifespan(app: FastAPI):
     logger.info("VirtualScreener API starting up")
     # Warm up ML scorer at startup
     from app.services.ml_scoring import get_scorer
+
     get_scorer(
         chemprop_checkpoint=settings.chemprop_checkpoint,
         deepchem_model_dir=settings.deepchem_model_dir,
@@ -55,3 +59,16 @@ app.include_router(molecules.router, prefix=settings.api_prefix)
 @app.get("/health", tags=["health"])
 async def health() -> dict:
     return {"status": "ok", "service": settings.app_name}
+
+
+# ── Hugging Face Spaces: serve built React app as static files ────────────────
+_static_dir = Path(__file__).resolve().parents[2] / "static"
+if os.getenv("HF_STATIC") and _static_dir.exists():
+    app.mount(
+        "/assets", StaticFiles(directory=str(_static_dir / "assets")), name="assets"
+    )
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        index = _static_dir / "index.html"
+        return FileResponse(str(index))

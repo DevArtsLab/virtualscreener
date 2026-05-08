@@ -1,3 +1,13 @@
+---
+title: VirtualScreener
+emoji: 🧬
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # VirtualScreener — AI Drug Discovery Platform
 
 AI-powered virtual screening: upload a protein PDB + compound library → ranked binding affinity predictions via a 3-tier ML + physics pipeline.
@@ -6,11 +16,11 @@ AI-powered virtual screening: upload a protein PDB + compound library → ranked
 
 ## Pipeline
 
-| Tier | Tool | Task |
-|---|---|---|
-| **1** | RDKit | Lipinski Ro5 + PAINS filter, 2D SVG rendering |
+| Tier  | Tool                                   | Task                                                |
+| ----- | -------------------------------------- | --------------------------------------------------- |
+| **1** | RDKit                                  | Lipinski Ro5 + PAINS filter, 2D SVG rendering       |
 | **2** | Chemprop D-MPNN + DeepChem AttentiveFP | ML binding affinity (pIC50), MC-Dropout uncertainty |
-| **3** | AutoDock Vina | Physics-based docking, 3D pose generation |
+| **3** | AutoDock Vina                          | Physics-based docking, 3D pose generation           |
 
 ---
 
@@ -56,11 +66,11 @@ npm run dev
 
 ## Input Formats
 
-| File | Format | Notes |
-|---|---|---|
-| Protein | `.pdb` | Standard PDB format from RCSB or AlphaFold |
-| Compound library | `.smi` / `.txt` / `.csv` | One SMILES per line: `SMILES name` |
-| Compound library | `.sdf` | Standard SDF with molecule names |
+| File             | Format                   | Notes                                      |
+| ---------------- | ------------------------ | ------------------------------------------ |
+| Protein          | `.pdb`                   | Standard PDB format from RCSB or AlphaFold |
+| Compound library | `.smi` / `.txt` / `.csv` | One SMILES per line: `SMILES name`         |
+| Compound library | `.sdf`                   | Standard SDF with molecule names           |
 
 ### Example SMILES file (`library.smi`)
 
@@ -74,28 +84,31 @@ CN1C=NC2=C1C(=O)N(C(=O)N2C)C Caffeine
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/screen` | Submit job (multipart: `protein_file`, `library_file`, `top_k`) |
-| `GET` | `/api/jobs/{job_id}` | Poll status & progress |
-| `GET` | `/api/molecules/{job_id}` | Paginated results |
-| `GET` | `/api/molecules/{job_id}/{mol_id}/pose` | Docking pose PDB |
-| `GET` | `/api/molecules/{job_id}/export/csv` | Download CSV |
+| Method | Endpoint                                | Description                                                     |
+| ------ | --------------------------------------- | --------------------------------------------------------------- |
+| `POST` | `/api/screen`                           | Submit job (multipart: `protein_file`, `library_file`, `top_k`) |
+| `GET`  | `/api/jobs/{job_id}`                    | Poll status & progress                                          |
+| `GET`  | `/api/molecules/{job_id}`               | Paginated results                                               |
+| `GET`  | `/api/molecules/{job_id}/{mol_id}/pose` | Docking pose PDB                                                |
+| `GET`  | `/api/molecules/{job_id}/export/csv`    | Download CSV                                                    |
 
 ---
 
 ## ML Models
 
 ### Chemprop D-MPNN
+
 - Place a pre-trained checkpoint at `backend/models/chemprop_bindingdb.pt`
 - If absent, the app runs in **demo mode** with a fingerprint-similarity heuristic
 - Train your own: `chemprop train --data_path your_data.csv --smiles_column smiles --target_columns pic50`
 
 ### DeepChem AttentiveFP
+
 - Checkpoint auto-saved to `backend/models/attentivefp/`
 - Falls back to heuristic if no checkpoint found
 
 ### AutoDock Vina
+
 - Requires `obabel` (Open Babel) for PDBQT conversion
 - Falls back to a physics-inspired heuristic score if unavailable
 
