@@ -5,6 +5,8 @@ WORKDIR /app
 # System deps for RDKit, BioPython, Open Babel
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libboost-all-dev \
+    swig \
     libxrender1 \
     libxext6 \
     openbabel \
