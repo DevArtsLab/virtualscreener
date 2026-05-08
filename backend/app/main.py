@@ -62,13 +62,23 @@ async def health() -> dict:
 
 
 # ── Hugging Face Spaces: serve built React app as static files ────────────────
-_static_dir = Path(__file__).resolve().parents[2] / "static"
-if os.getenv("HF_STATIC") and _static_dir.exists():
-    app.mount(
-        "/assets", StaticFiles(directory=str(_static_dir / "assets")), name="assets"
-    )
+_static_dir = Path("/app/static")
+if os.getenv("HF_STATIC"):
+    if _static_dir.exists():
+        app.mount(
+            "/assets", StaticFiles(directory=str(_static_dir / "assets")), name="assets"
+        )
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str):
-        index = _static_dir / "index.html"
-        return FileResponse(str(index))
+        @app.get("/", include_in_schema=False)
+        async def spa_root():
+            return FileResponse(str(_static_dir / "index.html"))
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa_fallback(full_path: str):
+            candidate = _static_dir / full_path
+            if candidate.is_file():
+                return FileResponse(str(candidate))
+            return FileResponse(str(_static_dir / "index.html"))
+
+    else:
+        logger.warning("HF_STATIC set but static dir not found at %s", _static_dir)
