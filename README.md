@@ -12,6 +12,11 @@ pinned: false
 
 AI-powered virtual screening: upload a protein PDB + compound library → ranked binding affinity predictions via a 3-tier ML + physics pipeline.
 
+## Screenshots
+
+![Home](docs/screenshots/Screenshot%202026-05-08%20at%203.31.08%E2%80%AFPM.png)
+![Home](docs/screenshots/Screenshot%202026-05-08%20at%203.31.24%E2%80%AFPM.png)
+
 ---
 
 ## Pipeline
