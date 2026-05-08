@@ -109,15 +109,16 @@ CN1C=NC2=C1C(=O)N(C(=O)N2C)C Caffeine
 
 ### AutoDock Vina
 
+- Installed as a system binary via `apt install autodock-vina` (no source compilation)
 - Requires `obabel` (Open Babel) for PDBQT conversion
-- Falls back to a physics-inspired heuristic score if unavailable
+- Falls back to a physics-inspired heuristic score if binary is unavailable
 
 ---
 
 ## Project Structure
 
 ```
-virtual-screening-app/
+virtualscreener/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py               FastAPI entry point
