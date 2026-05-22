@@ -44,6 +44,21 @@ docker compose up --build
 
 ### Backend
 
+#### Using Pipenv (recommended)
+
+> **Requires Python 3.11.** Install it via [pyenv](https://github.com/pyenv/pyenv):
+> `pyenv install 3.11` then `pyenv local 3.11`
+
+```bash
+cd backend
+pip install pipenv
+pipenv install          # creates venv with Python 3.11 & installs deps
+pipenv shell            # activate the virtual environment
+uvicorn app.main:app --reload --port 8000
+```
+
+#### Using venv + pip
+
 ```bash
 cd backend
 

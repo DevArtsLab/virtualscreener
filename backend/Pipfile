@@ -1,0 +1,35 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+# Web framework
+fastapi = "==0.115.5"
+uvicorn = {version = "==0.32.1", extras = ["standard"]}
+python-multipart = "==0.0.12"
+pydantic = "==2.10.3"
+pydantic-settings = "==2.6.1"
+# Cheminformatics
+rdkit = "==2024.3.5"
+# Machine Learning — Drug Discovery
+chemprop = "==2.0.4"
+deepchem = "==2.8.0"
+# Deep learning backend
+torch = "==2.4.1"
+torchvision = "==0.19.1"
+# Protein structure
+biopython = "==1.84"
+# Ligand preparation for Vina (optional)
+meeko = "==0.5.0"
+# Numerics
+numpy = "==1.26.4"
+scipy = "==1.13.1"
+pandas = "==2.2.3"
+# Dev utilities
+python-dotenv = "==1.0.1"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
